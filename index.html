@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Física Fácil - Laboratórios Interativos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+</head>
+<body>
+    <div class="background-effects">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+
+    <header class="glass-panel">
+        <div class="logo">
+            <h1>Física<span>Fácil</span></h1>
+        </div>
+        <nav>
+            <ul>
+                <li class="active"><a href="#" data-module="projectile">Cinemática</a></li>
+                <li><a href="#" data-module="dynamics">Dinâmica</a></li>
+                <li><a href="#" data-module="energy">Energia</a></li>
+                <li><a href="#" data-module="electrostatics">Eletrostática</a></li>
+            </ul>
+        </nav>
+        <div class="score-container">
+            Pontos: <span id="score">0</span>
+        </div>
+    </header>
+
+    <main id="app-container">
+        <!-- The active module will be injected or controlled here -->
+        <div id="module-projectile" class="module-view active">
+            <div class="simulation-area glass-panel">
+                <canvas id="sim-canvas"></canvas>
+            </div>
+            
+            <div class="controls-area glass-panel">
+                <h2>Lançamento de Projétil</h2>
+                <p>Ajuste o ângulo e a velocidade para acertar o alvo!</p>
+                
+                <div class="mode-toggle">
+                    <label><input type="checkbox" id="proj-formula-mode"> Modo Fórmula</label>
+                </div>
+
+                <div id="proj-manual-controls">
+                    <div class="control-group">
+                        <label for="angle">Ângulo: <span id="angle-val">45</span>°</label>
+                        <input type="range" id="angle" min="0" max="90" value="45">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="velocity">Velocidade: <span id="velocity-val">50</span> m/s</label>
+                        <input type="range" id="velocity" min="10" max="100" value="50">
+                    </div>
+                </div>
+
+                <div id="proj-formula-controls" class="formula-panel" style="display: none;">
+                    <div class="formula-vars">
+                        <span><strong>Variáveis:</strong> d = <span id="proj-var-d">0</span>m, g = 9.81m/s²</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Ângulo (θ em graus):</label>
+                        <input type="text" id="proj-formula-angle" placeholder="ex: 45" class="formula-input" value="45">
+                    </div>
+                    <div class="control-group">
+                        <label>Velocidade (v0 em m/s):</label>
+                        <input type="text" id="proj-formula-vel" placeholder="ex: sqrt((d * g) / sin(2 * 45 deg))" class="formula-input">
+                    </div>
+                    <button id="proj-calc-btn" class="secondary-btn" style="width: 100%; margin-bottom: 10px;">Calcular Valores</button>
+                    <div id="proj-calc-result" class="calc-result"></div>
+                </div>
+
+                <button id="fire-btn" class="primary-btn">Disparar!</button>
+                <button id="reset-btn" class="secondary-btn">Resetar</button>
+
+                <div class="stats">
+                    <p>Tempo de Voo: <span id="stat-time">0.00</span> s</p>
+                    <p>Alcance Máximo: <span id="stat-distance">0.00</span> m</p>
+                    <p>Altura Máxima: <span id="stat-height">0.00</span> m</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo Dinâmica -->
+        <div id="module-dynamics" class="module-view">
+            <div class="simulation-area glass-panel">
+                <canvas id="dyn-canvas"></canvas>
+            </div>
+            
+            <div class="controls-area glass-panel">
+                <h2>Bloco e Atrito</h2>
+                <p>Aplique força para empurrar o bloco até o alvo seguro!</p>
+                
+                <div class="mode-toggle">
+                    <label><input type="checkbox" id="dyn-formula-mode"> Modo Fórmula</label>
+                </div>
+
+                <div id="dyn-manual-controls">
+                    <div class="control-group">
+                        <label for="dyn-mass">Massa do Bloco: <span id="dyn-mass-val">10</span> kg</label>
+                        <input type="range" id="dyn-mass" min="1" max="50" value="10">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="dyn-force">Força Aplicada: <span id="dyn-force-val">50</span> N</label>
+                        <input type="range" id="dyn-force" min="0" max="300" value="50">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="dyn-friction">Coeficiente Atrito (μ): <span id="dyn-friction-val">0.2</span></label>
+                        <input type="range" id="dyn-friction" min="0" max="1" step="0.05" value="0.2">
+                    </div>
+                </div>
+
+                <div id="dyn-formula-controls" class="formula-panel" style="display: none;">
+                    <div class="formula-vars">
+                        <span><strong>Variáveis:</strong> m = <span id="dyn-var-m">10</span>kg, mu = <span id="dyn-var-mu">0.2</span>, g = 9.81m/s², d = <span id="dyn-var-d">0</span>m</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Massa (m em kg):</label>
+                        <input type="text" id="dyn-formula-mass" placeholder="ex: 10" class="formula-input" value="10">
+                    </div>
+                    <div class="control-group">
+                        <label>Coef. Atrito (mu):</label>
+                        <input type="text" id="dyn-formula-fric" placeholder="ex: 0.2" class="formula-input" value="0.2">
+                    </div>
+                    <div class="control-group">
+                        <label>Força (F em N):</label>
+                        <input type="text" id="dyn-formula-force" placeholder="ex: m * g * mu" class="formula-input">
+                    </div>
+                    <button id="dyn-calc-btn" class="secondary-btn" style="width: 100%; margin-bottom: 10px;">Calcular Valores</button>
+                    <div id="dyn-calc-result" class="calc-result"></div>
+                </div>
+
+                <button id="dyn-push-btn" class="primary-btn">Empurrar!</button>
+                <button id="dyn-reset-btn" class="secondary-btn">Resetar</button>
+
+                <div class="stats">
+                    <p>Força Resultante: <span id="stat-fres">0.00</span> N</p>
+                    <p>Aceleração: <span id="stat-accel">0.00</span> m/s²</p>
+                    <p>Velocidade Máx: <span id="stat-dyn-vel">0.00</span> m/s</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo Energia -->
+        <div id="module-energy" class="module-view">
+            <div class="simulation-area glass-panel">
+                <canvas id="en-canvas"></canvas>
+                <div class="energy-charts">
+                    <div class="bar-container">
+                        <div class="bar potential-bar" id="bar-pe"></div>
+                    </div>
+                    <span>Ep</span>
+                    <div class="bar-container">
+                        <div class="bar kinetic-bar" id="bar-ke"></div>
+                    </div>
+                    <span>Ec</span>
+                </div>
+            </div>
+            
+            <div class="controls-area glass-panel">
+                <h2>Rampa de Energia</h2>
+                <p>Solte a esfera e observe a conservação da energia mecânica.</p>
+                
+                <div class="mode-toggle">
+                    <label><input type="checkbox" id="en-formula-mode"> Modo Fórmula</label>
+                </div>
+
+                <div id="en-manual-controls">
+                    <div class="control-group">
+                        <label for="en-height">Altura Inicial: <span id="en-height-val">80</span>%</label>
+                        <input type="range" id="en-height" min="10" max="100" value="80">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="en-mass">Massa da Esfera: <span id="en-mass-val">5</span> kg</label>
+                        <input type="range" id="en-mass" min="1" max="20" value="5">
+                    </div>
+                </div>
+
+                <div id="en-formula-controls" class="formula-panel" style="display: none;">
+                    <div class="formula-vars">
+                        <span><strong>Variáveis:</strong> m = <span id="en-var-m">5</span>kg, g = 9.81m/s², hMax = 10m</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Massa (m em kg):</label>
+                        <input type="text" id="en-formula-mass" placeholder="ex: 5" class="formula-input" value="5">
+                    </div>
+                    <div class="control-group">
+                        <label>Altura (%):</label>
+                        <input type="text" id="en-formula-height" placeholder="ex: 80" class="formula-input">
+                    </div>
+                    <button id="en-calc-btn" class="secondary-btn" style="width: 100%; margin-bottom: 10px;">Calcular Valores</button>
+                    <div id="en-calc-result" class="calc-result"></div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="en-friction">Atrito do ar/pista:</label>
+                    <input type="checkbox" id="en-friction" style="width: 20px; height: 20px;">
+                </div>
+
+                <button id="en-drop-btn" class="primary-btn">Soltar Esfera</button>
+                <button id="en-reset-btn" class="secondary-btn">Resetar</button>
+
+                <div class="stats">
+                    <p>Energia Potencial: <span id="stat-pe">0</span> J</p>
+                    <p>Energia Cinética: <span id="stat-ke">0</span> J</p>
+                    <p>Energia Total: <span id="stat-te">0</span> J</p>
+                </div>
+            </div>
+        </div>
+        <!-- Módulo Eletrostática -->
+        <div id="module-electrostatics" class="module-view">
+            <div class="simulation-area glass-panel">
+                <canvas id="elec-canvas"></canvas>
+            </div>
+            
+            <div class="controls-area glass-panel">
+                <h2>Lei de Coulomb</h2>
+                <p>Posicione cargas para mover a carga de prova até o alvo!</p>
+                
+                <div class="control-group">
+                    <label>Adicionar Carga:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="add-pos-btn" class="secondary-btn" style="flex: 1; border-color: #3b82f6; color: #3b82f6;">+ Positiva</button>
+                        <button id="add-neg-btn" class="secondary-btn" style="flex: 1; border-color: #ef4444; color: #ef4444;">- Negativa</button>
+                    </div>
+                </div>
+
+                <div class="mode-toggle">
+                    <label><input type="checkbox" id="elec-formula-mode"> Modo Fórmula</label>
+                </div>
+
+                <div id="elec-manual-controls">
+                    <div class="control-group">
+                        <label for="elec-charge-mag">Magnitude da Carga: <span id="elec-charge-val">50</span> μC</label>
+                        <input type="range" id="elec-charge-mag" min="10" max="200" value="50">
+                    </div>
+                </div>
+
+                <div id="elec-formula-controls" class="formula-panel" style="display: none;">
+                    <div class="formula-vars">
+                        <span><strong>Variáveis:</strong> d = <span id="elec-var-d">0</span>m, k = 8.99e9, qProva = 1μC</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Magnitude da Carga (μC):</label>
+                        <input type="text" id="elec-formula-charge" placeholder="ex: (F * d^2) / k" class="formula-input">
+                    </div>
+                    <button id="elec-calc-btn" class="secondary-btn" style="width: 100%; margin-bottom: 10px;">Calcular Valores</button>
+                    <div id="elec-calc-result" class="calc-result"></div>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="show-field" checked> Mostrar Campo Elétrico
+                    </label>
+                </div>
+
+                <button id="elec-reset-btn" class="secondary-btn">Limpar Cargas</button>
+
+                <div class="stats">
+                    <p>Força Resultante: <span id="stat-elec-force">0.00</span> N</p>
+                    <p>Distância ao Alvo: <span id="stat-elec-dist">0.00</span> m</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/modules/projectile.js"></script>
+    <script src="js/modules/dynamics.js"></script>
+    <script src="js/modules/energy.js"></script>
+    <script src="js/modules/electrostatics.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
