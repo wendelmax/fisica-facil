@@ -29,6 +29,7 @@ function initEnergyModule() {
     const formulaHeight = document.getElementById('en-formula-height');
     const calcBtn = document.getElementById('en-calc-btn');
     const calcResult = document.getElementById('en-calc-result');
+    const feedbackEl = document.getElementById('en-feedback');
 
     let width, height;
     let animationId = null;
@@ -196,6 +197,13 @@ function initEnergyModule() {
             if (Math.abs(ball.v) < 0.1 && ball.heightMeters < 0.5) {
                 isPlaying = false;
                 window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 50 } })); // small reward
+                if(window.logActivity) window.logActivity(`Explorou Rampa de Energia. Altura=${(startHeightPercent*100).toFixed(0)}%, Atrito=${frictionCheck.checked}`);
+                if (feedbackEl) {
+                    feedbackEl.style.display = 'block';
+                    feedbackEl.innerHTML = frictionCheck.checked ? 
+                        '<strong>Dica Formativa:</strong> Com atrito, a energia mecânica não se conserva. A energia "perdida" foi convertida em calor! A altura final nunca será igual à inicial.' : 
+                        '<strong>Dica Formativa:</strong> Sem atrito, a Energia Potencial Inicial é totalmente convertida em Energia Cinética na parte mais baixa (Conservação de Energia). Tente ligar o atrito na próxima!';
+                }
             }
             
             updateStats();

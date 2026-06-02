@@ -23,6 +23,7 @@ function initProjectileModule() {
     const formulaVel = document.getElementById('proj-formula-vel');
     const calcBtn = document.getElementById('proj-calc-btn');
     const calcResult = document.getElementById('proj-calc-result');
+    const feedbackEl = document.getElementById('proj-feedback');
 
     // Physics Constants
     const g = 9.81; // Gravity (m/s^2)
@@ -40,6 +41,7 @@ function initProjectileModule() {
     // Initial conditions
     let v0 = parseInt(velocityInput.value);
     let theta = parseInt(angleInput.value) * (Math.PI / 180);
+    let consecutiveFailures = 0;
 
     function resizeCanvas() {
         const rect = canvas.parentElement.getBoundingClientRect();
@@ -255,12 +257,26 @@ function initProjectileModule() {
             target.hit = true;
             createExplosion(target.x + target.width/2, target.y);
             window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 100 } }));
+            if(window.logActivity) window.logActivity(`Acertou o alvo no Lançamento de Projétil com V0=${v0} e Ângulo=${(theta * 180 / Math.PI).toFixed(0)}°`);
+            consecutiveFailures = 0;
+            if(feedbackEl) feedbackEl.style.display = 'none';
             
             // Change target location after short delay
             setTimeout(() => {
                 if(!isFlying) generateTarget();
                 if(!isFlying) drawScene();
             }, 2000);
+        } else {
+            consecutiveFailures++;
+            if(window.logActivity) window.logActivity(`Errou o alvo no Lançamento de Projétil. Distância alcançada: ${((impactX - 40) / scale).toFixed(2)}m`);
+            if (consecutiveFailures >= 2 && feedbackEl) {
+                feedbackEl.style.display = 'block';
+                if (impactX < target.x) {
+                    feedbackEl.innerHTML = '<strong>Dica:</strong> O projétil caiu ANTES do alvo. Tente aumentar a velocidade ou ajustar o ângulo para mais perto de 45° (alcance máximo). Verifique a aba de Teoria!';
+                } else {
+                    feedbackEl.innerHTML = '<strong>Dica:</strong> O projétil passou do alvo. Tente diminuir a velocidade ou alterar o ângulo para encurtar a distância.';
+                }
+            }
         }
     }
 

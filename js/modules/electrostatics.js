@@ -22,6 +22,7 @@ function initElectrostaticsModule() {
     const formulaCharge = document.getElementById('elec-formula-charge');
     const calcBtn = document.getElementById('elec-calc-btn');
     const calcResult = document.getElementById('elec-calc-result');
+    const feedbackEl = document.getElementById('elec-feedback');
 
     let width, height;
     let animationId = null;
@@ -34,6 +35,7 @@ function initElectrostaticsModule() {
     let target = null;
     let isDragging = false;
     let dragTarget = null;
+    let consecutiveFailures = 0;
 
     function resizeCanvas() {
         const rect = canvas.parentElement.getBoundingClientRect();
@@ -58,7 +60,15 @@ function initElectrostaticsModule() {
         addCharge(-parseFloat(chargeMagInput.value));
     });
 
-    resetBtn.addEventListener('click', resetSimulation);
+    resetBtn.addEventListener('click', () => {
+        consecutiveFailures++;
+        if(window.logActivity) window.logActivity(`Limpou as cargas na Eletrostática. Tentando nova configuração.`);
+        if (consecutiveFailures >= 2 && feedbackEl) {
+            feedbackEl.style.display = 'block';
+            feedbackEl.innerHTML = '<strong>Dica Formativa:</strong> Cargas iguais se repelem e opostas se atraem. Tente colocar uma carga atrativa (negativa) perto do alvo para "puxar" a carga de prova e cargas positivas para empurrá-la!';
+        }
+        resetSimulation();
+    });
 
     // Formula logic
     formulaModeToggle.addEventListener('change', (e) => {
@@ -216,6 +226,9 @@ function initElectrostaticsModule() {
         if (distToTarget < target.radius) {
             target.hit = true;
             window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 200 } }));
+            if(window.logActivity) window.logActivity(`Acertou o alvo na Eletrostática com ${charges.length} cargas.`);
+            consecutiveFailures = 0;
+            if(feedbackEl) feedbackEl.style.display = 'none';
             setTimeout(resetSimulation, 2000);
         }
 

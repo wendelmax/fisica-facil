@@ -28,6 +28,7 @@ function initDynamicsModule() {
     const formulaForce = document.getElementById('dyn-formula-force');
     const calcBtn = document.getElementById('dyn-calc-btn');
     const calcResult = document.getElementById('dyn-calc-result');
+    const feedbackEl = document.getElementById('dyn-feedback');
 
     let width, height;
     let animationId = null;
@@ -45,6 +46,7 @@ function initDynamicsModule() {
     let mass = parseFloat(massInput.value);
     let appliedForce = parseFloat(forceInput.value);
     let mu = parseFloat(frictionInput.value);
+    let consecutiveFailures = 0;
     
     function resizeCanvas() {
         const rect = canvas.parentElement.getBoundingClientRect();
@@ -262,6 +264,20 @@ function initDynamicsModule() {
         if (center >= targetArea.x && center <= targetArea.x + targetArea.width) {
             targetArea.hit = true;
             window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 150 } }));
+            if(window.logActivity) window.logActivity(`Acertou no Dinâmica. Força=${appliedForce}N, Atrito=${mu}`);
+            consecutiveFailures = 0;
+            if(feedbackEl) feedbackEl.style.display = 'none';
+        } else {
+            consecutiveFailures++;
+            if(window.logActivity) window.logActivity(`Errou no Dinâmica. Caixa parou fora do alvo.`);
+            if (consecutiveFailures >= 2 && feedbackEl) {
+                feedbackEl.style.display = 'block';
+                if (center < targetArea.x) {
+                    feedbackEl.innerHTML = '<strong>Dica:</strong> A caixa parou ANTES do alvo. Verifique se a sua Força Aplicada superou a Força de Atrito tempo suficiente. Calcule F_atrito = μ * m * g!';
+                } else {
+                    feedbackEl.innerHTML = '<strong>Dica:</strong> A caixa PASSOU do alvo. Você aplicou muita força. Reduza-a ou use o Modo Fórmula para calcular exatamente a Força Resultante necessária.';
+                }
+            }
         }
         drawScene();
     }

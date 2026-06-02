@@ -28,8 +28,13 @@
                 <li><a href="#" data-module="electrostatics">Eletrostática</a></li>
             </ul>
         </nav>
-        <div class="score-container">
-            Pontos: <span id="score">0</span>
+        <div class="header-actions">
+            <button id="btn-how-it-works" class="icon-btn" title="Como Funciona o Cálculo Base?" onclick="document.getElementById('how-it-works-modal').style.display='flex'">⚙️</button>
+            <button id="btn-high-contrast" class="icon-btn" title="Alto Contraste">👁️</button>
+            <button id="btn-report" class="icon-btn" title="Exportar Relatório">📄</button>
+            <div class="score-container">
+                Pontos: <span id="score">0</span>
+            </div>
         </div>
     </header>
 
@@ -42,10 +47,19 @@
             
             <div class="controls-area glass-panel">
                 <h2>Lançamento de Projétil</h2>
-                <p>Ajuste o ângulo e a velocidade para acertar o alvo!</p>
+                <div class="edu-context">
+                    <p><strong>Missão:</strong> Você é um engenheiro aeroespacial. Ajuste o ângulo e a velocidade para lançar um pacote de suprimentos no alvo remoto!</p>
+                </div>
+                <details class="edu-theory">
+                    <summary>📚 Cola (Fórmulas)</summary>
+                    <p><strong>Alcance Máximo:</strong> D = (v² * sen(2θ)) / g</p>
+                    <p><strong>Tempo de Voo:</strong> t = (2 * v * sen(θ)) / g</p>
+                </details>
+                <div id="proj-feedback" class="edu-feedback" style="display: none;"></div>
                 
                 <div class="mode-toggle">
                     <label><input type="checkbox" id="proj-formula-mode"> Modo Fórmula</label>
+                    <button class="help-icon-btn" title="Ajuda com Fórmulas" onclick="document.getElementById('formula-help-modal').style.display='flex'">?</button>
                 </div>
 
                 <div id="proj-manual-controls">
@@ -95,10 +109,19 @@
             
             <div class="controls-area glass-panel">
                 <h2>Bloco e Atrito</h2>
-                <p>Aplique força para empurrar o bloco até o alvo seguro!</p>
+                <div class="edu-context">
+                    <p><strong>Missão:</strong> Ajude a equipe de resgate a empurrar uma caixa pesada sobre o gelo até a zona de segurança!</p>
+                </div>
+                <details class="edu-theory">
+                    <summary>📚 Cola (Fórmulas)</summary>
+                    <p><strong>Força de Atrito:</strong> F<sub>at</sub> = μ * N (N = m * g)</p>
+                    <p><strong>Força Resultante:</strong> F<sub>R</sub> = F<sub>aplicada</sub> - F<sub>at</sub> = m * a</p>
+                </details>
+                <div id="dyn-feedback" class="edu-feedback" style="display: none;"></div>
                 
                 <div class="mode-toggle">
                     <label><input type="checkbox" id="dyn-formula-mode"> Modo Fórmula</label>
+                    <button class="help-icon-btn" title="Ajuda com Fórmulas" onclick="document.getElementById('formula-help-modal').style.display='flex'">?</button>
                 </div>
 
                 <div id="dyn-manual-controls">
@@ -167,10 +190,20 @@
             
             <div class="controls-area glass-panel">
                 <h2>Rampa de Energia</h2>
-                <p>Solte a esfera e observe a conservação da energia mecânica.</p>
+                <div class="edu-context">
+                    <p><strong>Missão:</strong> Projete a altura inicial perfeita para que o carrinho da montanha russa chegue ao final com a velocidade certa, observando a conversão de energia!</p>
+                </div>
+                <details class="edu-theory">
+                    <summary>📚 Cola (Fórmulas)</summary>
+                    <p><strong>Energia Potencial:</strong> Ep = m * g * h</p>
+                    <p><strong>Energia Cinética:</strong> Ec = (m * v²) / 2</p>
+                    <p><strong>Conservação:</strong> Ep<sub>inicial</sub> = Ec<sub>final</sub> (sem atrito)</p>
+                </details>
+                <div id="en-feedback" class="edu-feedback" style="display: none;"></div>
                 
                 <div class="mode-toggle">
                     <label><input type="checkbox" id="en-formula-mode"> Modo Fórmula</label>
+                    <button class="help-icon-btn" title="Ajuda com Fórmulas" onclick="document.getElementById('formula-help-modal').style.display='flex'">?</button>
                 </div>
 
                 <div id="en-manual-controls">
@@ -224,7 +257,15 @@
             
             <div class="controls-area glass-panel">
                 <h2>Lei de Coulomb</h2>
-                <p>Posicione cargas para mover a carga de prova até o alvo!</p>
+                <div class="edu-context">
+                    <p><strong>Missão:</strong> Como físico de partículas, use cargas geradoras para guiar uma partícula subatômica (carga de prova) até o detector remoto!</p>
+                </div>
+                <details class="edu-theory">
+                    <summary>📚 Cola (Fórmulas)</summary>
+                    <p><strong>Lei de Coulomb:</strong> F = k * (|q1| * |q2|) / d²</p>
+                    <p>Cargas iguais se repelem, cargas opostas se atraem.</p>
+                </details>
+                <div id="elec-feedback" class="edu-feedback" style="display: none;"></div>
                 
                 <div class="control-group">
                     <label>Adicionar Carga:</label>
@@ -236,6 +277,7 @@
 
                 <div class="mode-toggle">
                     <label><input type="checkbox" id="elec-formula-mode"> Modo Fórmula</label>
+                    <button class="help-icon-btn" title="Ajuda com Fórmulas" onclick="document.getElementById('formula-help-modal').style.display='flex'">?</button>
                 </div>
 
                 <div id="elec-manual-controls">
@@ -269,6 +311,40 @@
                     <p>Força Resultante: <span id="stat-elec-force">0.00</span> N</p>
                     <p>Distância ao Alvo: <span id="stat-elec-dist">0.00</span> m</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Formula Help Modal -->
+        <div id="formula-help-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content glass-panel">
+                <button class="close-btn" onclick="document.getElementById('formula-help-modal').style.display='none'">✖</button>
+                <h2>Sintaxe do Modo Fórmula</h2>
+                <p>O Modo Fórmula utiliza a biblioteca Math.js. Aqui estão algumas funções úteis:</p>
+                <ul>
+                    <li><code>sqrt(x)</code>: Raiz quadrada de x</li>
+                    <li><code>x ^ y</code>: x elevado a potência de y</li>
+                    <li><code>sin(x)</code>, <code>cos(x)</code>: Seno, cosseno (use <code>deg</code> para graus, ex: <code>sin(45 deg)</code>)</li>
+                    <li><code>asin(x)</code>, <code>acos(x)</code>: Funções trigonométricas inversas</li>
+                    <li><code>pi</code>: A constante Pi (3.14159...)</li>
+                </ul>
+                <p><strong>Exemplo:</strong> <code>sqrt((d * g) / sin(2 * 45 deg))</code></p>
+                <p>Lembre-se de usar as <strong>Variáveis</strong> informadas na tela de cada módulo!</p>
+            </div>
+        </div>
+
+        <!-- How It Works Modal -->
+        <div id="how-it-works-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content glass-panel" style="max-width: 600px;">
+                <button class="close-btn" onclick="document.getElementById('how-it-works-modal').style.display='none'">✖</button>
+                <h2>Como é Feito o Cálculo Base?</h2>
+                <p>O simulador não usa animações pré-programadas; ele calcula a física em tempo real através de <strong>Integração Numérica</strong>.</p>
+                <ul>
+                    <li><strong>Tempo Discreto (dt):</strong> O navegador atualiza a tela ~60 vezes por segundo. O simulador mede o tempo exato entre cada quadro (<code>dt</code>).</li>
+                    <li><strong>Forças e Aceleração:</strong> Em cada "tick", o sistema calcula a Força Resultante (Gravidade, Atrito, Empuxo) baseada no estado atual e aplica a 2ª Lei de Newton (<code>Aceleração = Força / Massa</code>).</li>
+                    <li><strong>Movimento (Método de Euler):</strong> A aceleração atualiza a Velocidade (<code>V_nova = V_atual + a * dt</code>), que por sua vez atualiza a Posição na tela (<code>P_nova = P_atual + V * dt</code>).</li>
+                    <li><strong>Escala em Pixels:</strong> Todos os cálculos são matematicamente puros (Metros, Kilogramas, Segundos). Apenas na hora de desenhar na tela, uma Escala é aplicada (ex: <code>1 metro = 10 pixels</code>) para caber no monitor.</li>
+                    <li><strong>Modo Fórmula:</strong> Usa a engine matemática <em>Math.js</em>. O sistema pega as <strong>Variáveis Conhecidas</strong> do cenário no momento atual, as injeta em um ambiente isolado (sandbox), converte a sua expressão algébrica em uma Árvore de Sintaxe Abstrata (AST) e a resolve numericamente para definir as variáveis faltantes do disparo.</li>
+                </ul>
             </div>
         </div>
     </main>
