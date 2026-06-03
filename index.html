@@ -189,15 +189,25 @@
             </div>
             
             <div class="controls-area glass-panel">
-                <h2>Rampa de Energia</h2>
+                <h2>Laboratório de Energia</h2>
+                <div class="scenario-selector control-group" style="margin-bottom: 15px;">
+                    <label for="en-scenario">Cenário de Desafio:</label>
+                    <select id="en-scenario" class="formula-input" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                        <option value="radar" style="color: black;">Radar de Velocidade</option>
+                        <option value="jump" style="color: black;">Salto do Cânion</option>
+                        <option value="loop" style="color: black;">O Looping</option>
+                    </select>
+                </div>
                 <div class="edu-context">
-                    <p><strong>Missão:</strong> Projete a altura inicial perfeita para que o carrinho da montanha russa chegue ao final com a velocidade certa, observando a conversão de energia!</p>
+                    <p id="en-mission-text"><strong>Missão:</strong> Ajuste a altura inicial para que a esfera chegue ao final com a velocidade certa!</p>
                 </div>
                 <details class="edu-theory">
                     <summary>📚 Cola (Fórmulas)</summary>
-                    <p><strong>Energia Potencial:</strong> Ep = m * g * h</p>
-                    <p><strong>Energia Cinética:</strong> Ec = (m * v²) / 2</p>
-                    <p><strong>Conservação:</strong> Ep<sub>inicial</sub> = Ec<sub>final</sub> (sem atrito)</p>
+                    <div id="en-theory-content">
+                        <p><strong>Energia Potencial:</strong> Ep = m * g * h</p>
+                        <p><strong>Energia Cinética:</strong> Ec = (m * v²) / 2</p>
+                        <p><strong>Conservação:</strong> Ep<sub>inicial</sub> = Ec<sub>final</sub> (sem atrito)</p>
+                    </div>
                 </details>
                 <div id="en-feedback" class="edu-feedback" style="display: none;"></div>
                 
@@ -220,7 +230,7 @@
 
                 <div id="en-formula-controls" class="formula-panel" style="display: none;">
                     <div class="formula-vars">
-                        <span><strong>Variáveis:</strong> m = <span id="en-var-m">5</span>kg, g = 9.81m/s², hMax = 10m</span>
+                        <span><strong>Variáveis:</strong> <span id="en-var-text">m = 5kg, g = 9.81m/s², hMax = 10m</span></span>
                     </div>
                     <div class="control-group">
                         <label>Massa (m em kg):</label>
