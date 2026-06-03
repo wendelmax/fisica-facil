@@ -15,6 +15,10 @@ function initEnergyModule() {
     const massVal = document.getElementById('en-mass-val');
     const frictionCheck = document.getElementById('en-friction');
     
+    const radarSpeedInput = document.getElementById('en-radar-speed');
+    const radarSpeedVal = document.getElementById('en-radar-speed-val');
+    const radarControlDiv = document.getElementById('en-radar-control');
+    
     const dropBtn = document.getElementById('en-drop-btn');
     const resetBtn = document.getElementById('en-reset-btn');
     
@@ -39,14 +43,14 @@ function initEnergyModule() {
     let animationId = null;
 
     const g = 9.81; // physical gravity
-    const pixelPerMeter = 10;
-    const pg = g * pixelPerMeter; // pixel gravity for visuals
+    let pixelPerMeter = 250;
+    let pg = g * pixelPerMeter; // pixel gravity for visuals
 
     let isPlaying = false;
     let lastTime = 0;
     
     let mass = parseFloat(massInput.value);
-    let startHeightPercent = parseFloat(heightInput.value) / 100;
+    let startHeightMeters = parseFloat(heightInput.value) / 100;
     
     // State
     let currentScenario = 'radar';
@@ -59,7 +63,7 @@ function initEnergyModule() {
         radar: {
             mission: '<strong>Missão:</strong> Ajuste a altura inicial para que a esfera passe pelo radar com a velocidade correta de <span style="color:var(--accent-primary)">14.0 m/s</span>!',
             theory: '<p><strong>Energia:</strong> Ep = Ec no plano.</p><p><strong>Conservação:</strong> m * g * h = (m * v²) / 2</p><p><strong>Logo:</strong> h = v² / (2 * g)</p>',
-            varsText: 'm = 5kg, g = 9.81m/s², vAlvo = 14m/s',
+            varsText: 'm = 5kg, g = 9.81m/s², vAlvo = 14.0m/s',
             targetSpeed: 14.0
         },
         jump: {
@@ -81,7 +85,12 @@ function initEnergyModule() {
         theoryContent.innerHTML = data.theory;
         varText.innerHTML = data.varsText;
         feedbackEl.style.display = 'none';
-        resetSimulation();
+        
+        if (radarControlDiv) {
+            radarControlDiv.style.display = currentScenario === 'radar' ? 'block' : 'none';
+        }
+        
+        resizeCanvas();
     }
     
     if (scenarioSelect) {
@@ -97,9 +106,27 @@ function initEnergyModule() {
         
         trackOriginX = width / 2;
         trackOriginY = height - 40; 
-        maxTrackHeight = 100; // 10 meters * 10 px/m = 100 px
         
-        if (currentScenario === 'jump') trackOriginX = width / 3;
+        maxTrackHeight = height * 0.75; // 75% of canvas height
+        let ppmH = maxTrackHeight / 10.0; // max physical height is 10.0 meters
+        
+        if (currentScenario === 'jump') {
+            trackOriginX = width * 0.42; // Perfectly centers the 14m left and 20m right
+            let ppmW = (width * 0.9) / 35.0; // Fit 35m total width (14m ramp + 15m gap + 5m platform)
+            pixelPerMeter = Math.min(ppmW, ppmH);
+            // The ramp dips 2.0 meters below y=0. We must ensure this dip fits on screen!
+            trackOriginY = height - 10 - (2.0 * pixelPerMeter);
+        } else if (currentScenario === 'loop') {
+            trackOriginX = width * 0.5; // Center
+            let ppmW = (width * 0.9) / 20.0; // Fit 20m total width
+            pixelPerMeter = Math.min(ppmW, ppmH);
+        } else {
+            trackOriginX = width * 0.5; // Center
+            let ppmW = (width * 0.9) / 20.0; // Fit 20m total width
+            pixelPerMeter = Math.min(ppmW, ppmH);
+        }
+        
+        pg = g * pixelPerMeter;
         
         resetSimulation();
     }
@@ -107,7 +134,7 @@ function initEnergyModule() {
 
     heightInput.addEventListener('input', (e) => {
         heightVal.innerText = e.target.value;
-        startHeightPercent = parseFloat(e.target.value) / 100;
+        startHeightMeters = parseFloat(e.target.value) / 100;
         if(!isPlaying) resetSimulation();
     });
     
@@ -116,6 +143,21 @@ function initEnergyModule() {
         mass = parseFloat(e.target.value);
         if(!isPlaying) resetSimulation();
     });
+    
+    if (radarSpeedInput) {
+        radarSpeedInput.addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            radarSpeedVal.innerText = v.toFixed(1);
+            scenarios.radar.targetSpeed = v;
+            scenarios.radar.mission = `<strong>Missão:</strong> Ajuste a altura inicial para que a esfera passe pelo radar com a velocidade correta de <span style="color:var(--accent-primary)">${v.toFixed(1)} m/s</span>!`;
+            scenarios.radar.varsText = `m = 5kg, g = 9.81m/s², vAlvo = ${v.toFixed(1)}m/s`;
+            if (currentScenario === 'radar') {
+                missionText.innerHTML = scenarios.radar.mission;
+                varText.innerHTML = scenarios.radar.varsText;
+                if(!isPlaying) resetSimulation();
+            }
+        });
+    }
 
     dropBtn.addEventListener('click', () => {
         if (!isPlaying) {
@@ -148,7 +190,7 @@ function initEnergyModule() {
         const vars = {
             g: g,
             m: parseFloat(mStr) || 5,
-            vAlvo: 14,
+            vAlvo: scenarios.radar.targetSpeed,
             R: 3,
             hMax: 10
         };
@@ -164,7 +206,7 @@ function initEnergyModule() {
         }
 
         const clampedMass = Math.max(1, Math.min(20, calculatedMass));
-        const clampedHeight = Math.max(10, Math.min(100, calculatedHeight));
+        const clampedHeight = Math.max(10, Math.min(1000, calculatedHeight));
         
         massInput.value = clampedMass;
         massVal.innerText = clampedMass.toFixed(1);
@@ -172,44 +214,36 @@ function initEnergyModule() {
 
         heightInput.value = clampedHeight;
         heightVal.innerText = clampedHeight.toFixed(1);
-        startHeightPercent = clampedHeight / 100;
+        startHeightMeters = clampedHeight / 100;
 
         calcResult.style.color = 'var(--accent-tertiary)';
-        calcResult.innerText = `Sucesso! Massa = ${clampedMass.toFixed(1)} kg, Altura = ${clampedHeight.toFixed(1)}%`;
+        calcResult.innerText = `Sucesso! Massa = ${clampedMass.toFixed(1)} kg, Altura = ${clampedHeight.toFixed(1)} cm`;
         
         if(!isPlaying) resetSimulation();
     });
 
     // Track shapes (returns physical Y in pixels)
     function getTrackY(x) {
-        if (currentScenario === 'radar') {
-            if (x < 0) return 0.005 * x * x;
+        let xm = x / pixelPerMeter;
+        if (currentScenario === 'radar' || currentScenario === 'loop') {
+            if (xm < 0) return (0.1 * xm * xm) * pixelPerMeter;
             return 0;
         } 
         else if (currentScenario === 'jump') {
-            if (x < -50) return 0.005 * (x + 50) * (x + 50);
-            if (x <= 0) return 0.01 * (x + 50) * (x + 50);   // Ramp up
-            return -1000; // abyss
-        }
-        else if (currentScenario === 'loop') {
-            if (x < 0) return 0.005 * x * x;
-            return 0;
+            if (xm <= 0) return (0.125 * (xm + 4) * (xm + 4) - 2.0) * pixelPerMeter;
+            return -1000 * pixelPerMeter; // abyss
         }
         return 0;
     }
 
     function getTrackSlope(x) {
-        if (currentScenario === 'radar') {
-            if (x < 0) return 2 * 0.005 * x;
+        let xm = x / pixelPerMeter;
+        if (currentScenario === 'radar' || currentScenario === 'loop') {
+            if (xm < 0) return 2 * 0.1 * xm;
             return 0;
         }
         else if (currentScenario === 'jump') {
-            if (x < -50) return 2 * 0.005 * (x + 50);
-            if (x <= 0) return 2 * 0.01 * (x + 50);
-            return 0;
-        }
-        else if (currentScenario === 'loop') {
-            if (x < 0) return 2 * 0.005 * x;
+            if (xm <= 0) return 2 * 0.125 * (xm + 4);
             return 0;
         }
         return 0;
@@ -219,12 +253,16 @@ function initEnergyModule() {
         if (animationId) cancelAnimationFrame(animationId);
         isPlaying = false;
         
-        const targetY = maxTrackHeight * startHeightPercent;
+        let targetY_m = startHeightMeters;
         
         let startX = 0;
-        if (currentScenario === 'radar') startX = -Math.sqrt(targetY / 0.005);
-        if (currentScenario === 'jump') startX = -50 - Math.sqrt(targetY / 0.005);
-        if (currentScenario === 'loop') startX = -Math.sqrt(targetY / 0.005);
+        if (currentScenario === 'radar' || currentScenario === 'loop') {
+            startX = -Math.sqrt(targetY_m / 0.1) * pixelPerMeter;
+        } else if (currentScenario === 'jump') {
+            startX = (-Math.sqrt((targetY_m + 2.0) / 0.125) - 4) * pixelPerMeter;
+        }
+        
+        const targetY = getTrackY(startX);
         
         ball = {
             state: 'rampin', // rampin, flat, loop, air, platform, fall
@@ -265,7 +303,7 @@ function initEnergyModule() {
                 // Transitions
                 if (currentScenario === 'radar') {
                     if (ball.x >= 0) ball.state = 'flat';
-                    if (ball.x >= 200) {
+                    if (ball.x >= 5.0 * pixelPerMeter && currentScenario === 'radar') {
                         ball.hasFinished = true;
                         let speedMeters = Math.abs(ball.v) / pixelPerMeter;
                         let target = scenarios.radar.targetSpeed;
@@ -276,6 +314,8 @@ function initEnergyModule() {
                 else if (currentScenario === 'jump') {
                     if (ball.x >= 0 && ball.state !== 'air') {
                         ball.state = 'air';
+                        ball.x = 0;
+                        ball.y = 0;
                         let launchAngle = Math.atan(getTrackSlope(0));
                         ball.vx = ball.v * Math.cos(launchAngle);
                         ball.vy = ball.v * Math.sin(launchAngle);
@@ -288,11 +328,10 @@ function initEnergyModule() {
                     }
                 }
                 
-                // Reverse constraint if trying to go left of start
                 if (ball.x < -1000) ball.v = 0; 
             } 
             else if (ball.state === 'loop') {
-                let R = 30; // 3 meters
+                let R = 3.0 * pixelPerMeter; // 3.0 meters
                 let angle = ball.loopAngle;
                 
                 let tangentialAccel = -pg * Math.cos(angle); 
@@ -307,7 +346,6 @@ function initEnergyModule() {
                 ball.x = Math.cos(ball.loopAngle) * R;
                 ball.y = R + Math.sin(ball.loopAngle) * R;
                 
-                // N = v^2/R - g*sin(angle) (where angle=PI/2 is top)
                 let N = (ball.v * ball.v) / R - pg * Math.sin(ball.loopAngle);
                 
                 if (N < 0 && Math.sin(ball.loopAngle) > 0) {
@@ -335,9 +373,9 @@ function initEnergyModule() {
                 ball.y += ball.vy * dt;
                 
                 if (currentScenario === 'jump' && ball.state === 'air') {
-                    let platX = 150;
+                    let platX = 15.0 * pixelPerMeter;
                     let platY = 0;
-                    let platWidth = 150;
+                    let platWidth = 5.0 * pixelPerMeter; // 5 meters width
                     
                     if (ball.x >= platX && ball.x <= platX + platWidth && ball.y <= platY && ball.vy < 0) {
                         ball.state = 'platform';
@@ -347,7 +385,7 @@ function initEnergyModule() {
                         showFeedback(true, 'Aterrissagem perfeita! Ec foi suficiente para o alcance do salto.');
                     } else if (ball.y < -50) {
                         ball.hasFinished = true;
-                        showFeedback(false, 'Oops! Caiu no abismo. Faltou energia.');
+                        showFeedback(false, ball.x < platX ? 'Oops! Caiu no abismo. Faltou energia.' : 'Oops! Passou reto da plataforma! Muita energia.');
                     }
                 }
                 
@@ -381,7 +419,7 @@ function initEnergyModule() {
         feedbackEl.style.backgroundColor = success ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
         feedbackEl.style.borderLeftColor = success ? '#10b981' : '#ef4444';
         feedbackEl.innerHTML = `<strong>Resultado:</strong> ${msg}`;
-        if(window.logActivity) window.logActivity(`Energia ${currentScenario}: ${success?'Sucesso':'Falha'} com altura ${startHeightPercent.toFixed(2)} e atrito ${frictionCheck.checked}`);
+        if(window.logActivity) window.logActivity(`Energia ${currentScenario}: ${success?'Sucesso':'Falha'} com altura ${startHeightMeters.toFixed(2)} e atrito ${frictionCheck.checked}`);
         if(success) window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 100 } }));
     }
 
@@ -430,7 +468,8 @@ function initEnergyModule() {
         let first = true;
         
         if (currentScenario === 'radar') {
-            for(let x = -400; x <= 400; x+=5) {
+            let startX = -Math.sqrt(10.0 / 0.1) * pixelPerMeter;
+            for(let x = startX; x <= 10.0 * pixelPerMeter; x+=5) {
                 let ty = getTrackY(x);
                 let cx = trackOriginX + x;
                 let cy = trackOriginY - ty;
@@ -439,7 +478,7 @@ function initEnergyModule() {
             }
             ctx.stroke();
             
-            let rX = trackOriginX + 200;
+            let rX = trackOriginX + 5.0 * pixelPerMeter;
             let rY = trackOriginY;
             ctx.fillStyle = '#ef4444';
             ctx.fillRect(rX - 5, rY - 30, 10, 30);
@@ -448,7 +487,8 @@ function initEnergyModule() {
             ctx.fillText('RADAR', rX - 20, rY - 40);
         } 
         else if (currentScenario === 'jump') {
-            for(let x = -400; x <= 0; x+=5) {
+            let startX = (-Math.sqrt((10.0 + 2.0) / 0.125) - 4) * pixelPerMeter;
+            for(let x = startX; x <= 0; x+=5) {
                 let ty = getTrackY(x);
                 let cx = trackOriginX + x;
                 let cy = trackOriginY - ty;
@@ -458,21 +498,23 @@ function initEnergyModule() {
             ctx.stroke();
             
             ctx.beginPath();
-            let pX = trackOriginX + 150;
+            let pX = trackOriginX + 15.0 * pixelPerMeter;
             let pY = trackOriginY;
+            let pWidth = 5.0 * pixelPerMeter; // 5 meters width
             ctx.moveTo(pX, pY);
-            ctx.lineTo(pX + 200, pY);
+            ctx.lineTo(pX + pWidth, pY);
             ctx.stroke();
             
             ctx.fillStyle = '#3b82f6';
             ctx.globalAlpha = 0.5;
-            ctx.fillRect(pX, pY, 200, height - pY);
+            ctx.fillRect(pX, pY, pWidth, height - pY);
             ctx.globalAlpha = 1.0;
             ctx.fillStyle = '#fff';
-            ctx.fillText('PLATAFORMA', pX + 50, pY + 30);
+            ctx.fillText('PLATAFORMA', pX + pWidth/4, pY + 30);
         }
         else if (currentScenario === 'loop') {
-            for(let x = -400; x <= 0; x+=5) {
+            let startX = -Math.sqrt(10.0 / 0.1) * pixelPerMeter;
+            for(let x = startX; x <= 0; x+=5) {
                 let ty = getTrackY(x);
                 let cx = trackOriginX + x;
                 let cy = trackOriginY - ty;
@@ -481,14 +523,9 @@ function initEnergyModule() {
             }
             ctx.stroke();
             
-            let R = 30;
-            ctx.beginPath();
-            ctx.arc(trackOriginX, trackOriginY - R, R, -Math.PI/2, 3*Math.PI/2);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(trackOriginX, trackOriginY);
-            ctx.lineTo(trackOriginX + 300, trackOriginY);
+            let R = 3.0 * pixelPerMeter; // fixed 3m radius
+            ctx.arc(trackOriginX, trackOriginY - R, R, Math.PI/2, -Math.PI*1.5, true);
+            ctx.lineTo(trackOriginX + 10.0 * pixelPerMeter, trackOriginY);
             ctx.stroke();
         }
 
@@ -539,6 +576,10 @@ function initEnergyModule() {
     setTimeout(() => {
         resizeCanvas();
         if(scenarioSelect) updateScenarioUI();
+        if (radarSpeedInput) {
+            // Trigger initial UI update for radar text
+            radarSpeedInput.dispatchEvent(new Event('input'));
+        }
     }, 100);
 }
 

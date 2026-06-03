@@ -46,14 +46,24 @@
             </div>
             
             <div class="controls-area glass-panel">
-                <h2>Lançamento de Projétil</h2>
+                <h2>Laboratório de Cinemática</h2>
+                <div class="scenario-selector control-group" style="margin-bottom: 15px;">
+                    <label for="proj-scenario">Cenário de Desafio:</label>
+                    <select id="proj-scenario" class="formula-input" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                        <option value="standard" style="color: black;">Tiro ao Alvo</option>
+                        <option value="wall" style="color: black;">Por Cima do Muro</option>
+                        <option value="moving" style="color: black;">Alvo Móvel</option>
+                    </select>
+                </div>
                 <div class="edu-context">
-                    <p><strong>Missão:</strong> Você é um engenheiro aeroespacial. Ajuste o ângulo e a velocidade para lançar um pacote de suprimentos no alvo remoto!</p>
+                    <p id="proj-mission-text"><strong>Missão:</strong> Você é um engenheiro aeroespacial. Ajuste o ângulo e a velocidade para lançar um pacote de suprimentos no alvo remoto!</p>
                 </div>
                 <details class="edu-theory">
                     <summary>📚 Cola (Fórmulas)</summary>
-                    <p><strong>Alcance Máximo:</strong> D = (v² * sen(2θ)) / g</p>
-                    <p><strong>Tempo de Voo:</strong> t = (2 * v * sen(θ)) / g</p>
+                    <div id="proj-theory-content">
+                        <p><strong>Alcance Máximo:</strong> D = (v² * sen(2θ)) / g</p>
+                        <p><strong>Tempo de Voo:</strong> t = (2 * v * sen(θ)) / g</p>
+                    </div>
                 </details>
                 <div id="proj-feedback" class="edu-feedback" style="display: none;"></div>
                 
@@ -76,7 +86,7 @@
 
                 <div id="proj-formula-controls" class="formula-panel" style="display: none;">
                     <div class="formula-vars">
-                        <span><strong>Variáveis:</strong> d = <span id="proj-var-d">0</span>m, g = 9.81m/s²</span>
+                        <span><strong>Variáveis:</strong> <span id="proj-var-text">d = 0m, g = 9.81m/s²</span></span>
                     </div>
                     <div class="control-group">
                         <label>Ângulo (θ em graus):</label>
@@ -108,14 +118,24 @@
             </div>
             
             <div class="controls-area glass-panel">
-                <h2>Bloco e Atrito</h2>
+                <h2>Laboratório de Dinâmica</h2>
+                <div class="scenario-selector control-group" style="margin-bottom: 15px;">
+                    <label for="dyn-scenario">Cenário de Desafio:</label>
+                    <select id="dyn-scenario" class="formula-input" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                        <option value="standard" style="color: black;">Zona de Segurança</option>
+                        <option value="mixed" style="color: black;">Superfície Mista</option>
+                        <option value="ramp" style="color: black;">Ladeira Acima</option>
+                    </select>
+                </div>
                 <div class="edu-context">
-                    <p><strong>Missão:</strong> Ajude a equipe de resgate a empurrar uma caixa pesada sobre o gelo até a zona de segurança!</p>
+                    <p id="dyn-mission-text"><strong>Missão:</strong> Ajude a equipe de resgate a empurrar uma caixa pesada sobre o gelo até a zona de segurança!</p>
                 </div>
                 <details class="edu-theory">
                     <summary>📚 Cola (Fórmulas)</summary>
-                    <p><strong>Força de Atrito:</strong> F<sub>at</sub> = μ * N (N = m * g)</p>
-                    <p><strong>Força Resultante:</strong> F<sub>R</sub> = F<sub>aplicada</sub> - F<sub>at</sub> = m * a</p>
+                    <div id="dyn-theory-content">
+                        <p><strong>Força de Atrito:</strong> F<sub>at</sub> = μ * N</p>
+                        <p><strong>Força Resultante:</strong> F<sub>R</sub> = F<sub>aplicada</sub> - F<sub>at</sub> = m * a</p>
+                    </div>
                 </details>
                 <div id="dyn-feedback" class="edu-feedback" style="display: none;"></div>
                 
@@ -143,7 +163,7 @@
 
                 <div id="dyn-formula-controls" class="formula-panel" style="display: none;">
                     <div class="formula-vars">
-                        <span><strong>Variáveis:</strong> m = <span id="dyn-var-m">10</span>kg, mu = <span id="dyn-var-mu">0.2</span>, g = 9.81m/s², d = <span id="dyn-var-d">0</span>m</span>
+                        <span><strong>Variáveis:</strong> <span id="dyn-var-text">m = 10kg, mu = 0.2, g = 9.81m/s², d = 0m</span></span>
                     </div>
                     <div class="control-group">
                         <label>Massa (m em kg):</label>
@@ -218,27 +238,32 @@
 
                 <div id="en-manual-controls">
                     <div class="control-group">
-                        <label for="en-height">Altura Inicial: <span id="en-height-val">80</span>%</label>
-                        <input type="range" id="en-height" min="10" max="100" value="80">
+                        <label for="en-height">Altura Inicial: <span id="en-height-val">800</span> cm</label>
+                        <input type="range" id="en-height" min="10" max="1000" step="10" value="800">
                     </div>
 
                     <div class="control-group">
                         <label for="en-mass">Massa da Esfera: <span id="en-mass-val">5</span> kg</label>
                         <input type="range" id="en-mass" min="1" max="20" value="5">
                     </div>
+                    
+                    <div class="control-group" id="en-radar-control">
+                        <label for="en-radar-speed">Alvo do Radar: <span id="en-radar-speed-val">14.0</span> m/s</label>
+                        <input type="range" id="en-radar-speed" min="1.0" max="14.0" step="0.5" value="14.0">
+                    </div>
                 </div>
 
                 <div id="en-formula-controls" class="formula-panel" style="display: none;">
                     <div class="formula-vars">
-                        <span><strong>Variáveis:</strong> <span id="en-var-text">m = 5kg, g = 9.81m/s², hMax = 10m</span></span>
+                        <span><strong>Variáveis:</strong> <span id="en-var-text">m = 5kg, g = 9.81m/s², vAlvo = 4m/s</span></span>
                     </div>
                     <div class="control-group">
                         <label>Massa (m em kg):</label>
                         <input type="text" id="en-formula-mass" placeholder="ex: 5" class="formula-input" value="5">
                     </div>
                     <div class="control-group">
-                        <label>Altura (%):</label>
-                        <input type="text" id="en-formula-height" placeholder="ex: 80" class="formula-input">
+                        <label>Altura (cm):</label>
+                        <input type="text" id="en-formula-height" placeholder="ex: 800" class="formula-input">
                     </div>
                     <button id="en-calc-btn" class="secondary-btn" style="width: 100%; margin-bottom: 10px;">Calcular Valores</button>
                     <div id="en-calc-result" class="calc-result"></div>
@@ -266,14 +291,24 @@
             </div>
             
             <div class="controls-area glass-panel">
-                <h2>Lei de Coulomb</h2>
+                <h2>Laboratório de Eletrostática</h2>
+                <div class="scenario-selector control-group" style="margin-bottom: 15px;">
+                    <label for="elec-scenario">Cenário de Desafio:</label>
+                    <select id="elec-scenario" class="formula-input" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                        <option value="custom" style="color: black;">Alvo Livre</option>
+                        <option value="maze" style="color: black;">Campo Minado</option>
+                        <option value="orbit" style="color: black;">Gravidade Elétrica (Órbita)</option>
+                    </select>
+                </div>
                 <div class="edu-context">
-                    <p><strong>Missão:</strong> Como físico de partículas, use cargas geradoras para guiar uma partícula subatômica (carga de prova) até o detector remoto!</p>
+                    <p id="elec-mission-text"><strong>Missão:</strong> Clique em qualquer lugar na tela para definir o alvo. Depois guie a partícula até ele usando cargas geradoras!</p>
                 </div>
                 <details class="edu-theory">
                     <summary>📚 Cola (Fórmulas)</summary>
-                    <p><strong>Lei de Coulomb:</strong> F = k * (|q1| * |q2|) / d²</p>
-                    <p>Cargas iguais se repelem, cargas opostas se atraem.</p>
+                    <div id="elec-theory-content">
+                        <p><strong>Lei de Coulomb:</strong> F = k * (|q1| * |q2|) / d²</p>
+                        <p>Cargas iguais se repelem, cargas opostas se atraem.</p>
+                    </div>
                 </details>
                 <div id="elec-feedback" class="edu-feedback" style="display: none;"></div>
                 
@@ -299,7 +334,7 @@
 
                 <div id="elec-formula-controls" class="formula-panel" style="display: none;">
                     <div class="formula-vars">
-                        <span><strong>Variáveis:</strong> d = <span id="elec-var-d">0</span>m, k = 8.99e9, qProva = 1μC</span>
+                        <span><strong>Variáveis:</strong> <span id="elec-var-text">d = 0m, k = 8.99e9, qProva = +10</span></span>
                     </div>
                     <div class="control-group">
                         <label>Magnitude da Carga (μC):</label>

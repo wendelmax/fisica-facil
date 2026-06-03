@@ -1,8 +1,13 @@
 function initProjectileModule() {
     const canvas = document.getElementById('sim-canvas');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
     // UI Elements
+    const scenarioSelect = document.getElementById('proj-scenario');
+    const missionText = document.getElementById('proj-mission-text');
+    const theoryContent = document.getElementById('proj-theory-content');
+    
     const angleInput = document.getElementById('angle');
     const angleVal = document.getElementById('angle-val');
     const velocityInput = document.getElementById('velocity');
@@ -18,7 +23,7 @@ function initProjectileModule() {
     const formulaModeToggle = document.getElementById('proj-formula-mode');
     const manualControls = document.getElementById('proj-manual-controls');
     const formulaControls = document.getElementById('proj-formula-controls');
-    const varDEl = document.getElementById('proj-var-d');
+    const varTextEl = document.getElementById('proj-var-text');
     const formulaAngle = document.getElementById('proj-formula-angle');
     const formulaVel = document.getElementById('proj-formula-vel');
     const calcBtn = document.getElementById('proj-calc-btn');
@@ -36,12 +41,75 @@ function initProjectileModule() {
     let isFlying = false;
     let projectile = null;
     let target = null;
+    let wall = null;
     let particles = []; // For explosion effects
     
     // Initial conditions
     let v0 = parseInt(velocityInput.value);
     let theta = parseInt(angleInput.value) * (Math.PI / 180);
     let consecutiveFailures = 0;
+    
+    let currentScenario = scenarioSelect ? scenarioSelect.value : 'standard';
+
+    const scenarios = {
+        standard: {
+            mission: "<strong>Missão:</strong> Você é um engenheiro aeroespacial. Ajuste o ângulo e a velocidade para lançar um pacote de suprimentos no alvo estático!",
+            theory: `
+                <p><strong>Alcance Máximo:</strong> D = (v² * sen(2θ)) / g</p>
+                <p><strong>Tempo de Voo:</strong> t = (2 * v * sen(θ)) / g</p>
+            `,
+            setup: () => {
+                wall = null;
+                generateTarget(false);
+            }
+        },
+        wall: {
+            mission: "<strong>Missão:</strong> Há um muro alto bloqueando o caminho! Use um ângulo de tiro mais alto (parábola fechada) para superá-lo e acertar o alvo atrás dele.",
+            theory: `
+                <p><strong>Altura Máxima:</strong> h = (v² * sen²(θ)) / (2*g)</p>
+                <p>O projétil precisa ter H_max maior que a altura do muro!</p>
+            `,
+            setup: () => {
+                generateTarget(true); // target further away
+                // Create a wall in the middle
+                const wallDistanceMeters = (target.x - 40) / scale / 2; // halfway
+                const wallHeightMeters = 30 + Math.random() * 20; // 30-50m
+                wall = {
+                    x: 40 + wallDistanceMeters * scale,
+                    y: 0, // calculated in draw
+                    width: 20,
+                    height: wallHeightMeters * scale,
+                    heightMeters: wallHeightMeters
+                };
+            }
+        },
+        moving: {
+            mission: "<strong>Missão:</strong> O alvo está em movimento! Calcule o Tempo de Voo para prever onde o alvo estará no momento do impacto.",
+            theory: `
+                <p><strong>Tempo de Voo:</strong> t = (2 * v * sen(θ)) / g</p>
+                <p>O alvo se move a 5 m/s. Posição alvo = X_inicial + V_alvo * t</p>
+            `,
+            setup: () => {
+                wall = null;
+                generateTarget(false);
+                target.vx = 5; // 5 m/s
+                target.moving = true;
+            }
+        }
+    };
+
+    function updateScenarioUI() {
+        if (!missionText) return;
+        currentScenario = scenarioSelect.value;
+        const config = scenarios[currentScenario];
+        missionText.innerHTML = config.mission;
+        theoryContent.innerHTML = config.theory;
+        resetSimulation();
+    }
+
+    if (scenarioSelect) {
+        scenarioSelect.addEventListener('change', updateScenarioUI);
+    }
 
     function resizeCanvas() {
         const rect = canvas.parentElement.getBoundingClientRect();
@@ -97,7 +165,8 @@ function initProjectileModule() {
 
         const vars = {
             d: currentDistance,
-            g: g
+            g: g,
+            h_muro: wall ? wall.heightMeters : 0
         };
 
         const calculatedAngle = window.PhysicsUtils.evaluateFormula(angleStr, vars);
@@ -128,14 +197,14 @@ function initProjectileModule() {
         v0 = clampedVel;
 
         calcResult.style.color = 'var(--accent-tertiary)';
-        calcResult.innerText = `Sucesso! Ângulo = ${clampedAngle.toFixed(1)}°, V0 = ${clampedVel.toFixed(1)} m/s`;
+        calcResult.innerText = `Sucesso! Ângulo = \${clampedAngle.toFixed(1)}°, V0 = \${clampedVel.toFixed(1)} m/s`;
         
         if(!isFlying) drawScene();
     });
 
-    function generateTarget() {
-        // Random distance between 50m and (canvas_width/scale - 20)m
-        const minX = 50 * scale;
+    function generateTarget(far) {
+        let minX = 50 * scale;
+        if (far) minX = 100 * scale; // For wall scenario, ensure it's far enough
         const maxX = width - 100;
         const targetX = Math.random() * (maxX - minX) + minX;
         
@@ -144,11 +213,21 @@ function initProjectileModule() {
             y: height - 20, // Ground level is height - 20
             width: 40,
             height: 10,
-            hit: false
+            hit: false,
+            moving: false,
+            vx: 0
         };
         
-        currentDistance = (targetX - 40) / scale;
-        varDEl.innerText = currentDistance.toFixed(1);
+        updateVarsText();
+    }
+
+    function updateVarsText() {
+        if (!target) return;
+        currentDistance = (target.x - 40) / scale;
+        let text = `d = \${currentDistance.toFixed(1)}m, g = 9.81m/s²`;
+        if (wall) text += `, h_muro = \${wall.heightMeters.toFixed(1)}m`;
+        if (target.moving) text += `, v_alvo = \${target.vx.toFixed(1)}m/s`;
+        varTextEl.innerText = text;
     }
 
     function resetSimulation() {
@@ -170,11 +249,14 @@ function initProjectileModule() {
         statDistance.innerText = "0.00";
         statHeight.innerText = "0.00";
         
-        generateTarget();
-        drawScene();
+        scenarios[currentScenario].setup();
+        
+        lastTime = performance.now();
+        animationId = requestAnimationFrame(updateAndDraw); // Start loop for moving target if needed
     }
 
     function startSimulation() {
+        if (isFlying) return;
         isFlying = true;
         projectile.x = 40; // Initial x
         projectile.y = height - 20; // Initial y
@@ -184,8 +266,9 @@ function initProjectileModule() {
         projectile.path = [];
         projectile.maxHeight = 0;
         
+        if (feedbackEl) feedbackEl.style.display = 'none';
+        
         lastTime = performance.now();
-        animationId = requestAnimationFrame(updateAndDraw);
     }
 
     let lastTime = 0;
@@ -196,42 +279,68 @@ function initProjectileModule() {
         // Speed up simulation time slightly for better UX
         const simDt = dt * 2.5; 
 
+        // Update moving target
+        if (target && target.moving) {
+            target.x += target.vx * scale * simDt;
+            // Bounce on edges
+            if (target.x < 100) target.vx = Math.abs(target.vx);
+            if (target.x > width - 60) target.vx = -Math.abs(target.vx);
+            updateVarsText();
+        }
+
         if (isFlying) {
             projectile.time += simDt;
             
-            // Basic kinematics equations
-            // x = v0 * cos(theta) * t
-            // y = v0 * sin(theta) * t - 0.5 * g * t^2
-            
-            // In canvas coordinates, y is inverted
             const currentX = projectile.vx * projectile.time;
             const currentY = (projectile.vy * projectile.time) + (0.5 * g * scale * projectile.time * projectile.time);
             
-            projectile.x = projectile.startX + currentX * scale;
-            projectile.y = projectile.startY + currentY * scale;
+            const nextX = projectile.startX + currentX * scale;
+            const nextY = projectile.startY + currentY * scale;
 
-            // Save path
-            if (projectile.path.length === 0 || 
-                Math.abs(projectile.path[projectile.path.length-1].x - projectile.x) > 5) {
-                projectile.path.push({x: projectile.x, y: projectile.y});
+            // Wall collision check
+            if (wall) {
+                const wallTopY = height - 20 - wall.height;
+                // If crossing the wall's X
+                if ((projectile.x <= wall.x && nextX >= wall.x) || (projectile.x >= wall.x + wall.width && nextX <= wall.x + wall.width)) {
+                    if (projectile.y > wallTopY) { // hit the wall
+                        isFlying = false;
+                        consecutiveFailures++;
+                        if (feedbackEl) {
+                            feedbackEl.style.display = 'block';
+                            feedbackEl.innerHTML = '<strong>BOOM!</strong> O projétil bateu no muro! Tente aumentar o ângulo para conseguir uma parábola mais alta (maior Altura Máxima).';
+                        }
+                        createExplosion(wall.x, projectile.y);
+                    }
+                }
             }
 
-            // Track max height
-            const currentHeightMeters = (height - 20 - projectile.y) / scale;
-            if (currentHeightMeters > projectile.maxHeight) {
-                projectile.maxHeight = currentHeightMeters;
-            }
+            if (isFlying) {
+                projectile.x = nextX;
+                projectile.y = nextY;
 
-            // Update stats
-            statTime.innerText = projectile.time.toFixed(2);
-            statDistance.innerText = ((projectile.x - projectile.startX) / scale).toFixed(2);
-            statHeight.innerText = Math.max(0, projectile.maxHeight).toFixed(2);
+                // Save path
+                if (projectile.path.length === 0 || 
+                    Math.abs(projectile.path[projectile.path.length-1].x - projectile.x) > 5) {
+                    projectile.path.push({x: projectile.x, y: projectile.y});
+                }
 
-            // Collision with ground
-            if (projectile.y >= height - 20) {
-                projectile.y = height - 20;
-                isFlying = false;
-                checkTargetHit();
+                // Track max height
+                const currentHeightMeters = (height - 20 - projectile.y) / scale;
+                if (currentHeightMeters > projectile.maxHeight) {
+                    projectile.maxHeight = currentHeightMeters;
+                }
+
+                // Update stats
+                statTime.innerText = projectile.time.toFixed(2);
+                statDistance.innerText = ((projectile.x - projectile.startX) / scale).toFixed(2);
+                statHeight.innerText = Math.max(0, projectile.maxHeight).toFixed(2);
+
+                // Collision with ground
+                if (projectile.y >= height - 20) {
+                    projectile.y = height - 20;
+                    isFlying = false;
+                    checkTargetHit();
+                }
             }
         }
 
@@ -246,7 +355,8 @@ function initProjectileModule() {
 
         drawScene();
 
-        if (isFlying || particles.length > 0) {
+        // Always loop if moving target or particles, or flying
+        if (isFlying || particles.length > 0 || (target && target.moving)) {
             animationId = requestAnimationFrame(updateAndDraw);
         }
     }
@@ -257,22 +367,22 @@ function initProjectileModule() {
             target.hit = true;
             createExplosion(target.x + target.width/2, target.y);
             window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 100 } }));
-            if(window.logActivity) window.logActivity(`Acertou o alvo no Lançamento de Projétil com V0=${v0} e Ângulo=${(theta * 180 / Math.PI).toFixed(0)}°`);
+            if(window.logActivity) window.logActivity(`Acertou o alvo no Lançamento de Projétil (\${currentScenario}) com V0=\${v0} e Ângulo=\${(theta * 180 / Math.PI).toFixed(0)}°`);
             consecutiveFailures = 0;
             if(feedbackEl) feedbackEl.style.display = 'none';
             
             // Change target location after short delay
             setTimeout(() => {
-                if(!isFlying) generateTarget();
-                if(!isFlying) drawScene();
+                if(!isFlying) scenarios[currentScenario].setup();
+                if(!isFlying && !target.moving) drawScene();
             }, 2000);
         } else {
             consecutiveFailures++;
-            if(window.logActivity) window.logActivity(`Errou o alvo no Lançamento de Projétil. Distância alcançada: ${((impactX - 40) / scale).toFixed(2)}m`);
+            if(window.logActivity) window.logActivity(`Errou o alvo no Lançamento de Projétil (\${currentScenario}). Distância alcançada: \${((impactX - 40) / scale).toFixed(2)}m`);
             if (consecutiveFailures >= 2 && feedbackEl) {
                 feedbackEl.style.display = 'block';
                 if (impactX < target.x) {
-                    feedbackEl.innerHTML = '<strong>Dica:</strong> O projétil caiu ANTES do alvo. Tente aumentar a velocidade ou ajustar o ângulo para mais perto de 45° (alcance máximo). Verifique a aba de Teoria!';
+                    feedbackEl.innerHTML = '<strong>Dica:</strong> O projétil caiu ANTES do alvo. Tente aumentar a velocidade ou ajustar o ângulo para mais perto de 45° (alcance máximo).';
                 } else {
                     feedbackEl.innerHTML = '<strong>Dica:</strong> O projétil passou do alvo. Tente diminuir a velocidade ou alterar o ângulo para encurtar a distância.';
                 }
@@ -287,12 +397,13 @@ function initProjectileModule() {
                 y: y,
                 vx: (Math.random() - 0.5) * 10,
                 vy: (Math.random() - 0.5) * 10,
-                color: `hsl(${Math.random() * 60 + 15}, 100%, 50%)`,
+                color: `hsl(\${Math.random() * 60 + 15}, 100%, 50%)`,
                 alpha: 1,
                 size: Math.random() * 4 + 2
             });
         }
-        if(!animationId) {
+        // Ensure loop is running
+        if (!isFlying && (!target || !target.moving)) {
             lastTime = performance.now();
             animationId = requestAnimationFrame(updateAndDraw);
         }
@@ -329,7 +440,22 @@ function initProjectileModule() {
             ctx.stroke();
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
             ctx.font = '10px Arial';
-            ctx.fillText(`${((x-40)/scale)}m`, x - 10, height - 5);
+            ctx.fillText(`\${((x-40)/scale)}m`, x - 10, height - 5);
+        }
+
+        // Draw Wall
+        if (wall) {
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(wall.x, height - 20 - wall.height, wall.width, wall.height);
+            // Brick pattern
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1;
+            for(let y = height - 20; y > height - 20 - wall.height; y -= 10) {
+                ctx.beginPath();
+                ctx.moveTo(wall.x, y);
+                ctx.lineTo(wall.x + wall.width, y);
+                ctx.stroke();
+            }
         }
 
         // Draw Target
@@ -340,6 +466,20 @@ function initProjectileModule() {
             ctx.fillRect(target.x, target.y - target.height, target.width, target.height);
             // reset shadow
             ctx.shadowBlur = 0;
+            
+            // If moving, draw speed vector
+            if (target.moving && !target.hit) {
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(target.x + target.width/2, target.y - target.height - 5);
+                const dir = target.vx > 0 ? 1 : -1;
+                ctx.lineTo(target.x + target.width/2 + dir * 20, target.y - target.height - 5);
+                ctx.lineTo(target.x + target.width/2 + dir * 15, target.y - target.height - 8);
+                ctx.moveTo(target.x + target.width/2 + dir * 20, target.y - target.height - 5);
+                ctx.lineTo(target.x + target.width/2 + dir * 15, target.y - target.height - 2);
+                ctx.stroke();
+            }
         }
 
         // Draw Cannon
@@ -372,7 +512,7 @@ function initProjectileModule() {
             ctx.setLineDash([]);
         }
 
-        // Draw Predicted Trajectory (if not flying)
+        // Draw Predicted Trajectory (if not flying and standard/wall)
         if (!isFlying) {
             ctx.beginPath();
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
@@ -392,6 +532,13 @@ function initProjectileModule() {
                 let cy = (pvy * pt) + (0.5 * g * scale * pt * pt);
                 px = 40 + cx * scale;
                 py = (height - 20) + cy * scale;
+                
+                // Stop predicting if hits wall
+                if (wall && px >= wall.x && px <= wall.x + wall.width && py > height - 20 - wall.height) {
+                    ctx.lineTo(px, py);
+                    break;
+                }
+                
                 ctx.lineTo(px, py);
             }
             ctx.stroke();
@@ -422,5 +569,8 @@ function initProjectileModule() {
 
     // Initial Setup
     // setTimeout to ensure layout is done
-    setTimeout(resizeCanvas, 100);
+    setTimeout(() => {
+        if (scenarioSelect) updateScenarioUI();
+        resizeCanvas();
+    }, 100);
 }

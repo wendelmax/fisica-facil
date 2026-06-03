@@ -4,6 +4,10 @@ function initDynamicsModule() {
     const ctx = canvas.getContext('2d');
     
     // UI Elements
+    const scenarioSelect = document.getElementById('dyn-scenario');
+    const missionText = document.getElementById('dyn-mission-text');
+    const theoryContent = document.getElementById('dyn-theory-content');
+
     const massInput = document.getElementById('dyn-mass');
     const massVal = document.getElementById('dyn-mass-val');
     const forceInput = document.getElementById('dyn-force');
@@ -22,7 +26,7 @@ function initDynamicsModule() {
     const formulaModeToggle = document.getElementById('dyn-formula-mode');
     const manualControls = document.getElementById('dyn-manual-controls');
     const formulaControls = document.getElementById('dyn-formula-controls');
-    const varDEl = document.getElementById('dyn-var-d');
+    const varTextEl = document.getElementById('dyn-var-text');
     const formulaMass = document.getElementById('dyn-formula-mass');
     const formulaFric = document.getElementById('dyn-formula-fric');
     const formulaForce = document.getElementById('dyn-formula-force');
@@ -47,6 +51,94 @@ function initDynamicsModule() {
     let appliedForce = parseFloat(forceInput.value);
     let mu = parseFloat(frictionInput.value);
     let consecutiveFailures = 0;
+
+    let currentScenario = scenarioSelect ? scenarioSelect.value : 'standard';
+
+    const scenarios = {
+        standard: {
+            mission: "<strong>Missão:</strong> Ajude a equipe de resgate a empurrar uma caixa pesada até a zona de segurança!",
+            theory: `
+                <p><strong>Força de Atrito:</strong> F<sub>at</sub> = μ * N (N = m * g)</p>
+                <p><strong>Força Resultante:</strong> F<sub>R</sub> = F<sub>aplicada</sub> - F<sub>at</sub> = m * a</p>
+            `,
+            setup: () => {
+                // standard target
+                frictionInput.disabled = false;
+                const minX = 300;
+                const maxX = width - 150;
+                targetArea = {
+                    x: Math.random() * (maxX - minX) + minX,
+                    width: 80,
+                    hit: false
+                };
+            },
+            getFriction: (x) => mu,
+            getGravityParallel: () => 0, // flat
+            getNormal: () => mass * g,
+            angle: 0
+        },
+        mixed: {
+            mission: "<strong>Missão:</strong> O caminho tem metade gelo (μ=0.01) e metade areia (μ=0.6)! A zona segura fica na areia.",
+            theory: `
+                <p>A Força Resultante muda de acordo com a superfície!</p>
+                <p>No gelo: F<sub>at</sub> = 0.01 * N</p>
+                <p>Na areia: F<sub>at</sub> = 0.6 * N</p>
+            `,
+            setup: () => {
+                frictionInput.disabled = true; // locked by scenario
+                targetArea = {
+                    x: width - 150, // deep in the sand
+                    width: 80,
+                    hit: false
+                };
+            },
+            getFriction: (x) => {
+                return (x > width / 2) ? 0.6 : 0.01;
+            },
+            getGravityParallel: () => 0,
+            getNormal: () => mass * g,
+            angle: 0
+        },
+        ramp: {
+            mission: "<strong>Missão:</strong> Agora a caixa precisa subir uma ladeira de 15°! A gravidade vai puxá-la para trás.",
+            theory: `
+                <p><strong>Componente do Peso (Px):</strong> Px = m * g * sen(15°)</p>
+                <p><strong>Força Normal (N):</strong> N = m * g * cos(15°)</p>
+                <p><strong>Força Resultante:</strong> F<sub>R</sub> = F<sub>aplicada</sub> - F<sub>at</sub> - Px</p>
+            `,
+            setup: () => {
+                frictionInput.disabled = false;
+                targetArea = {
+                    x: width / 2 + 100, // half way up
+                    width: 80,
+                    hit: false
+                };
+            },
+            getFriction: (x) => mu,
+            getGravityParallel: () => mass * g * Math.sin(15 * Math.PI / 180),
+            getNormal: () => mass * g * Math.cos(15 * Math.PI / 180),
+            angle: -15 * Math.PI / 180 // draw angle
+        }
+    };
+
+    function updateScenarioUI() {
+        if (!missionText) return;
+        currentScenario = scenarioSelect.value;
+        const config = scenarios[currentScenario];
+        missionText.innerHTML = config.mission;
+        theoryContent.innerHTML = config.theory;
+        
+        // Ensure values match inputs
+        mass = parseFloat(massInput.value);
+        appliedForce = parseFloat(forceInput.value);
+        mu = parseFloat(frictionInput.value);
+        
+        resetSimulation();
+    }
+
+    if (scenarioSelect) {
+        scenarioSelect.addEventListener('change', updateScenarioUI);
+    }
     
     function resizeCanvas() {
         const rect = canvas.parentElement.getBoundingClientRect();
@@ -57,23 +149,22 @@ function initDynamicsModule() {
         resetSimulation();
     }
     
-    // Make sure we only add listener once per module or handle resize safely
     window.addEventListener('resize', resizeCanvas);
 
     massInput.addEventListener('input', (e) => {
         massVal.innerText = e.target.value;
         mass = parseFloat(e.target.value);
-        if(!isPlaying) updateStats();
+        if(!isPlaying) { updateStats(); updateVarsText(); }
     });
     forceInput.addEventListener('input', (e) => {
         forceVal.innerText = e.target.value;
         appliedForce = parseFloat(e.target.value);
-        if(!isPlaying) updateStats();
+        if(!isPlaying) { updateStats(); updateVarsText(); }
     });
     frictionInput.addEventListener('input', (e) => {
         frictionVal.innerText = e.target.value;
         mu = parseFloat(e.target.value);
-        if(!isPlaying) updateStats();
+        if(!isPlaying) { updateStats(); updateVarsText(); }
     });
 
     pushBtn.addEventListener('click', () => {
@@ -117,7 +208,6 @@ function initDynamicsModule() {
         const calculatedMass = window.PhysicsUtils.evaluateFormula(mStr, vars);
         const calculatedFric = window.PhysicsUtils.evaluateFormula(muStr, vars);
         
-        // Update vars before calculating force
         vars.m = calculatedMass !== null ? calculatedMass : vars.m;
         vars.mu = calculatedFric !== null ? calculatedFric : vars.mu;
         
@@ -144,38 +234,68 @@ function initDynamicsModule() {
         massVal.innerText = clampedMass.toFixed(1);
         mass = clampedMass;
 
-        frictionInput.value = clampedFric;
-        frictionVal.innerText = clampedFric.toFixed(2);
-        mu = clampedFric;
+        if (!frictionInput.disabled) {
+            frictionInput.value = clampedFric;
+            frictionVal.innerText = clampedFric.toFixed(2);
+            mu = clampedFric;
+        }
 
         forceInput.value = clampedForce;
         forceVal.innerText = clampedForce.toFixed(1);
         appliedForce = clampedForce;
 
         calcResult.style.color = 'var(--accent-tertiary)';
-        calcResult.innerText = `Sucesso! F = ${clampedForce.toFixed(1)} N`;
+        calcResult.innerText = `Sucesso! F = \${clampedForce.toFixed(1)} N`;
         
         if(!isPlaying) {
             updateStats();
+            updateVarsText();
             drawScene();
         }
     });
 
+    function updateVarsText() {
+        if (!targetArea) return;
+        currentDistance = (targetArea.x - 50) / scale;
+        let text = `m = \${mass.toFixed(1)}kg, g = 9.81m/s², d = \${currentDistance.toFixed(1)}m`;
+        if (currentScenario === 'mixed') {
+            text += `, mu_gelo = 0.01, mu_areia = 0.6`;
+        } else {
+            text += `, mu = \${mu.toFixed(2)}`;
+        }
+        varTextEl.innerText = text;
+    }
+
     function updateStats() {
-        const normalForce = mass * g;
-        const frictionForce = mu * normalForce;
-        let netForce = appliedForce - frictionForce;
+        if (!block) return;
+        const config = scenarios[currentScenario];
+        const normalForce = config.getNormal();
+        const frictionForce = config.getFriction(block.x) * normalForce;
+        const px = config.getGravityParallel();
         
-        if (netForce < 0 && block && block.vx <= 0) {
-            netForce = 0; // Won't move backwards
+        let netForce = appliedForce;
+        
+        if (block.vx > 0) {
+            netForce -= (frictionForce + px);
+        } else if (appliedForce > frictionForce + px) {
+            netForce -= (frictionForce + px);
+        } else {
+            netForce = 0;
+            // if px is huge, could slide backwards, but let's assume it doesn't slide backwards for simplicity
+            if (px > frictionForce + appliedForce && block.vx <= 0) {
+                netForce = appliedForce - px + frictionForce; // sliding backwards, friction opposes
+            }
+        }
+        
+        if (netForce < 0 && block.vx <= 0 && px === 0) {
+            netForce = 0; // Won't move backwards on flat ground
         }
         
         const accel = netForce / mass;
         
         statFres.innerText = netForce.toFixed(2);
         statAccel.innerText = accel.toFixed(2);
-        
-        if(block) statVel.innerText = block.vx.toFixed(2);
+        statVel.innerText = block.vx.toFixed(2);
     }
 
     function resetSimulation() {
@@ -184,26 +304,23 @@ function initDynamicsModule() {
         
         block = {
             x: 50,
-            y: height - 60,
+            y: height - 60, // visual only, real calc uses x
             size: 40,
             vx: 0,
-            vy: 0
+            vy: 0,
+            pushing: true
         };
         
-        // Target area far away
-        const minX = 200;
-        const maxX = width - 100;
-        targetArea = {
-            x: Math.random() * (maxX - minX) + minX,
-            width: 80,
-            hit: false
-        };
+        scenarios[currentScenario].setup();
         
-        currentDistance = (targetArea.x - 50) / scale;
-        varDEl.innerText = currentDistance.toFixed(1);
-        
+        updateVarsText();
         updateStats();
         drawScene();
+        
+        if(feedbackEl) feedbackEl.style.display = 'none';
+        
+        // Restore applied force input value
+        appliedForce = parseFloat(forceInput.value);
     }
 
     function updateAndDraw(currentTime) {
@@ -211,40 +328,51 @@ function initDynamicsModule() {
         lastTime = currentTime;
         
         if (isPlaying) {
-            const normalForce = mass * g;
-            const frictionForce = mu * normalForce;
+            const config = scenarios[currentScenario];
+            const normalForce = config.getNormal();
+            const currentMu = config.getFriction(block.x);
+            const frictionForce = currentMu * normalForce;
+            const px = config.getGravityParallel();
+            
             let netForce = appliedForce;
             
             // Apply kinetic friction if moving, or static friction limit if stopped
             if (block.vx > 0) {
-                netForce -= frictionForce;
-            } else if (appliedForce > frictionForce) {
-                netForce -= frictionForce;
+                netForce -= (frictionForce + px);
+            } else if (appliedForce > frictionForce + px) {
+                netForce -= (frictionForce + px);
+            } else if (px > frictionForce + appliedForce && block.vx <= 0) {
+                // sliding backwards down the ramp
+                netForce = appliedForce - px + frictionForce;
             } else {
                 netForce = 0;
             }
             
             const accel = netForce / mass;
             
-            // Stop applying force after 1 second of pushing, then let it slide
-            // (Creates a more interesting game mechanic)
-            if (block.x > 100) {
+            // Stop applying force after 100 pixels of pushing (10 meters)
+            if (block.x > 150 && block.pushing) {
+                block.pushing = false;
                 appliedForce = 0; // User push ends
-                forceInput.value = 0;
-                forceVal.innerText = 0;
             }
 
             block.vx += accel * dt;
-            if (block.vx < 0) {
+            
+            // Stop if velocity changes sign without enough force to move backwards/forwards
+            if (block.vx < 0 && px === 0) {
                 block.vx = 0;
-                isPlaying = false; // Stopped
+                isPlaying = false; // Stopped on flat ground
+                checkWin();
+            } else if (block.vx < 0 && px > 0 && Math.abs(px) <= frictionForce) {
+                block.vx = 0;
+                isPlaying = false; // Stopped on ramp and friction holds it
                 checkWin();
             }
             
             block.x += block.vx * scale * dt;
             
-            // Reached the end of screen
-            if (block.x > width) {
+            // Reached the end of screen or fell off
+            if (block.x > width || block.x < 0) {
                 isPlaying = false;
                 checkWin();
             }
@@ -264,18 +392,18 @@ function initDynamicsModule() {
         if (center >= targetArea.x && center <= targetArea.x + targetArea.width) {
             targetArea.hit = true;
             window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 150 } }));
-            if(window.logActivity) window.logActivity(`Acertou no Dinâmica. Força=${appliedForce}N, Atrito=${mu}`);
+            if(window.logActivity) window.logActivity(`Acertou no Dinâmica (\${currentScenario}). Força inicial=\${forceInput.value}N`);
             consecutiveFailures = 0;
             if(feedbackEl) feedbackEl.style.display = 'none';
         } else {
             consecutiveFailures++;
-            if(window.logActivity) window.logActivity(`Errou no Dinâmica. Caixa parou fora do alvo.`);
+            if(window.logActivity) window.logActivity(`Errou no Dinâmica (\${currentScenario}). Caixa parou fora do alvo.`);
             if (consecutiveFailures >= 2 && feedbackEl) {
                 feedbackEl.style.display = 'block';
                 if (center < targetArea.x) {
-                    feedbackEl.innerHTML = '<strong>Dica:</strong> A caixa parou ANTES do alvo. Verifique se a sua Força Aplicada superou a Força de Atrito tempo suficiente. Calcule F_atrito = μ * m * g!';
+                    feedbackEl.innerHTML = '<strong>Dica:</strong> A caixa parou ANTES do alvo. Verifique se a sua Força Resultante (Força - Atrito - Px) é suficiente para criar inércia!';
                 } else {
-                    feedbackEl.innerHTML = '<strong>Dica:</strong> A caixa PASSOU do alvo. Você aplicou muita força. Reduza-a ou use o Modo Fórmula para calcular exatamente a Força Resultante necessária.';
+                    feedbackEl.innerHTML = '<strong>Dica:</strong> A caixa PASSOU do alvo. Você aplicou muita força. Reduza-a ou use o Modo Fórmula para calcular.';
                 }
             }
         }
@@ -284,6 +412,9 @@ function initDynamicsModule() {
 
     function drawScene() {
         ctx.clearRect(0, 0, width, height);
+        ctx.save();
+
+        const config = scenarios[currentScenario];
 
         // Sky
         const grad = ctx.createLinearGradient(0, 0, 0, height);
@@ -292,9 +423,23 @@ function initDynamicsModule() {
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, width, height);
 
+        // Rotation for Ramp scenario
+        if (config.angle !== 0) {
+            ctx.translate(0, height - 20); // origin at bottom left corner
+            ctx.rotate(config.angle);
+            ctx.translate(0, -(height - 20)); // move back
+        }
+
         // Ground
-        ctx.fillStyle = '#475569';
-        ctx.fillRect(0, height - 20, width, 20);
+        if (currentScenario === 'mixed') {
+            ctx.fillStyle = '#bae6fd'; // Ice
+            ctx.fillRect(0, height - 20, width/2, 20);
+            ctx.fillStyle = '#fde047'; // Sand
+            ctx.fillRect(width/2, height - 20, width, 20);
+        } else {
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(0, height - 20, width * 2, 20); // width*2 to cover ramp edge cases
+        }
 
         // Target Area
         if(targetArea) {
@@ -308,7 +453,7 @@ function initDynamicsModule() {
         // Distance markers
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.lineWidth = 1;
-        for(let x=50; x<width; x+=50) {
+        for(let x=50; x<width*2; x+=50) {
             ctx.beginPath();
             ctx.moveTo(x, height-20);
             ctx.lineTo(x, height);
@@ -329,18 +474,31 @@ function initDynamicsModule() {
             
             // Normal
             drawArrow(ctx, cx, block.y, cx, block.y - 30, '#10b981');
-            // Gravity
-            drawArrow(ctx, cx, block.y + block.size, cx, block.y + block.size + 30, '#10b981');
+            
+            // Gravity (down relative to screen, so we need to counter-rotate if on ramp to draw it correctly straight down, or just draw it relative to block)
+            // If we are rotated, 'down' on the canvas is still down visually if we undo rotation just for this arrow
+            ctx.save();
+            ctx.translate(cx, block.y + block.size);
+            if (config.angle !== 0) {
+                ctx.rotate(-config.angle); // rotate back to point straight down in global coords
+            }
+            drawArrow(ctx, 0, 0, 0, 40, '#10b981');
+            ctx.restore();
             
             // Applied Force
             if (appliedForce > 0) {
                 drawArrow(ctx, block.x, cy, block.x + 40, cy, '#3b82f6');
             }
             // Friction
-            if (mu > 0 && (block.vx > 0 || appliedForce > 0)) {
-                drawArrow(ctx, block.x, cy + 10, block.x - 30, cy + 10, '#ef4444');
+            const currentMu = config.getFriction(block.x);
+            if (currentMu > 0 && (block.vx !== 0 || appliedForce > 0)) {
+                // If moving backwards, friction points forwards!
+                const dir = block.vx < 0 ? 1 : -1;
+                drawArrow(ctx, block.x + (dir>0?block.size:0), cy + 10, block.x + (dir>0?block.size:0) + dir * 30, cy + 10, '#ef4444');
             }
         }
+        
+        ctx.restore();
     }
     
     function drawArrow(ctx, fromx, fromy, tox, toy, color){
@@ -359,5 +517,8 @@ function initDynamicsModule() {
         ctx.stroke();
     }
 
-    setTimeout(resizeCanvas, 100);
+    setTimeout(() => {
+        if (scenarioSelect) updateScenarioUI();
+        resizeCanvas();
+    }, 100);
 }
