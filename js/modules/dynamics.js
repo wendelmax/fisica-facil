@@ -245,7 +245,7 @@ function initDynamicsModule() {
         appliedForce = clampedForce;
 
         calcResult.style.color = 'var(--accent-tertiary)';
-        calcResult.innerText = `Sucesso! F = \${clampedForce.toFixed(1)} N`;
+        calcResult.innerText = `Sucesso! F = ${clampedForce.toFixed(1)} N`;
         
         if(!isPlaying) {
             updateStats();
@@ -257,11 +257,11 @@ function initDynamicsModule() {
     function updateVarsText() {
         if (!targetArea) return;
         currentDistance = (targetArea.x - 50) / scale;
-        let text = `m = \${mass.toFixed(1)}kg, g = 9.81m/s², d = \${currentDistance.toFixed(1)}m`;
+        let text = `m = ${mass.toFixed(1)}kg, g = 9.81m/s², d = ${currentDistance.toFixed(1)}m`;
         if (currentScenario === 'mixed') {
             text += `, mu_gelo = 0.01, mu_areia = 0.6`;
         } else {
-            text += `, mu = \${mu.toFixed(2)}`;
+            text += `, mu = ${mu.toFixed(2)}`;
         }
         varTextEl.innerText = text;
     }
@@ -392,12 +392,12 @@ function initDynamicsModule() {
         if (center >= targetArea.x && center <= targetArea.x + targetArea.width) {
             targetArea.hit = true;
             window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 150 } }));
-            if(window.logActivity) window.logActivity(`Acertou no Dinâmica (\${currentScenario}). Força inicial=\${forceInput.value}N`);
+            if(window.logActivity) window.logActivity(`Acertou no Dinâmica (${currentScenario}). Força inicial=${forceInput.value}N`);
             consecutiveFailures = 0;
             if(feedbackEl) feedbackEl.style.display = 'none';
         } else {
             consecutiveFailures++;
-            if(window.logActivity) window.logActivity(`Errou no Dinâmica (\${currentScenario}). Caixa parou fora do alvo.`);
+            if(window.logActivity) window.logActivity(`Errou no Dinâmica (${currentScenario}). Caixa parou fora do alvo.`);
             if (consecutiveFailures >= 2 && feedbackEl) {
                 feedbackEl.style.display = 'block';
                 if (center < targetArea.x) {

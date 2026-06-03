@@ -160,7 +160,7 @@ function initElectrostaticsModule() {
 
     resetBtn.addEventListener('click', () => {
         consecutiveFailures++;
-        if(window.logActivity) window.logActivity(`Limpou as cargas na Eletrostática (\${currentScenario}).`);
+        if(window.logActivity) window.logActivity(`Limpou as cargas na Eletrostática (${currentScenario}).`);
         resetSimulation(true);
     });
 
@@ -210,7 +210,7 @@ function initElectrostaticsModule() {
         chargeMagVal.innerText = clampedCharge.toFixed(1);
 
         calcResult.style.color = 'var(--accent-tertiary)';
-        calcResult.innerText = `Sucesso! Carga = \${clampedCharge.toFixed(1)} μC`;
+        calcResult.innerText = `Sucesso! Carga = ${clampedCharge.toFixed(1)} μC`;
     });
 
     canvas.addEventListener('mousedown', (e) => {
@@ -289,7 +289,7 @@ function initElectrostaticsModule() {
     function updateVarsText() {
         if (target) {
             currentDistance = Math.hypot(testCharge.x - target.x, testCharge.y - target.y);
-            varTextEl.innerText = `d = \${currentDistance.toFixed(1)}m, k = 8.99e9, qProva = +10`;
+            varTextEl.innerText = `d = ${currentDistance.toFixed(1)}m, k = 8.99e9, qProva = +10`;
         } else {
             varTextEl.innerText = `k = 8.99e9, qProva = +10, R = alvo circular`;
         }
@@ -380,7 +380,7 @@ function initElectrostaticsModule() {
             if (distToTarget < target.radius) {
                 target.hit = true;
                 window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 200 } }));
-                if(window.logActivity) window.logActivity(`Acertou o alvo na Eletrostática (\${currentScenario}).`);
+                if(window.logActivity) window.logActivity(`Acertou o alvo na Eletrostática (${currentScenario}).`);
                 consecutiveFailures = 0;
                 if(feedbackEl) feedbackEl.style.display = 'none';
                 setTimeout(() => resetSimulation(false), 2000); // keep charges, respawn test
@@ -397,7 +397,7 @@ function initElectrostaticsModule() {
             orbitState.totalAngle += diff;
             orbitState.lastAngle = currentAngle;
             
-            statDist.innerText = `\${Math.abs((orbitState.totalAngle * 180 / Math.PI)).toFixed(0)}°`;
+            statDist.innerText = `${Math.abs((orbitState.totalAngle * 180 / Math.PI)).toFixed(0)}°`;
             
             if (Math.abs(orbitState.totalAngle) >= Math.PI * 2) {
                 orbitState.active = false; // win!
@@ -415,10 +415,10 @@ function initElectrostaticsModule() {
     }
     
     function failLevel(msg) {
-        if(window.logActivity) window.logActivity(`Falha na Eletrostática (\${currentScenario}): \${msg}`);
-        if (feedbackEl) {
+        if(window.logActivity) window.logActivity(`Falha na Eletrostática (${currentScenario}): ${msg}`);
+        if(feedbackEl) {
             feedbackEl.style.display = 'block';
-            feedbackEl.innerHTML = `<strong>Ops!</strong> \${msg} Tente ajustar as cargas.`;
+            feedbackEl.innerHTML = `<strong>Ops!</strong> ${msg} Tente ajustar as cargas.`;
         }
     }
 

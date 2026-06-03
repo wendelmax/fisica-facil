@@ -196,8 +196,7 @@ function initProjectileModule() {
         velocityVal.innerText = clampedVel.toFixed(1);
         v0 = clampedVel;
 
-        calcResult.style.color = 'var(--accent-tertiary)';
-        calcResult.innerText = `Sucesso! Ângulo = \${clampedAngle.toFixed(1)}°, V0 = \${clampedVel.toFixed(1)} m/s`;
+        calcResult.innerText = `Sucesso! Ângulo = ${clampedAngle.toFixed(1)}°, V0 = ${clampedVel.toFixed(1)} m/s`;
         
         if(!isFlying) drawScene();
     });
@@ -224,9 +223,9 @@ function initProjectileModule() {
     function updateVarsText() {
         if (!target) return;
         currentDistance = (target.x - 40) / scale;
-        let text = `d = \${currentDistance.toFixed(1)}m, g = 9.81m/s²`;
-        if (wall) text += `, h_muro = \${wall.heightMeters.toFixed(1)}m`;
-        if (target.moving) text += `, v_alvo = \${target.vx.toFixed(1)}m/s`;
+        let text = `d = ${currentDistance.toFixed(1)}m, g = 9.81m/s²`;
+        if (wall) text += `, h_muro = ${wall.heightMeters.toFixed(1)}m`;
+        if (target.moving) text += `, v_alvo = ${target.vx.toFixed(1)}m/s`;
         varTextEl.innerText = text;
     }
 
@@ -269,6 +268,7 @@ function initProjectileModule() {
         if (feedbackEl) feedbackEl.style.display = 'none';
         
         lastTime = performance.now();
+        animationId = requestAnimationFrame(updateAndDraw); // Start loop if it was stopped
     }
 
     let lastTime = 0;
@@ -367,7 +367,7 @@ function initProjectileModule() {
             target.hit = true;
             createExplosion(target.x + target.width/2, target.y);
             window.dispatchEvent(new CustomEvent('updateScore', { detail: { points: 100 } }));
-            if(window.logActivity) window.logActivity(`Acertou o alvo no Lançamento de Projétil (\${currentScenario}) com V0=\${v0} e Ângulo=\${(theta * 180 / Math.PI).toFixed(0)}°`);
+            if(window.logActivity) window.logActivity(`Acertou o alvo no Lançamento de Projétil (${currentScenario}) com V0=${v0} e Ângulo=${(theta * 180 / Math.PI).toFixed(0)}°`);
             consecutiveFailures = 0;
             if(feedbackEl) feedbackEl.style.display = 'none';
             
@@ -378,7 +378,7 @@ function initProjectileModule() {
             }, 2000);
         } else {
             consecutiveFailures++;
-            if(window.logActivity) window.logActivity(`Errou o alvo no Lançamento de Projétil (\${currentScenario}). Distância alcançada: \${((impactX - 40) / scale).toFixed(2)}m`);
+            if(window.logActivity) window.logActivity(`Errou o alvo no Lançamento de Projétil (${currentScenario}). Distância alcançada: ${((impactX - 40) / scale).toFixed(2)}m`);
             if (consecutiveFailures >= 2 && feedbackEl) {
                 feedbackEl.style.display = 'block';
                 if (impactX < target.x) {
@@ -397,7 +397,7 @@ function initProjectileModule() {
                 y: y,
                 vx: (Math.random() - 0.5) * 10,
                 vy: (Math.random() - 0.5) * 10,
-                color: `hsl(\${Math.random() * 60 + 15}, 100%, 50%)`,
+                color: `hsl(${Math.random() * 60 + 15}, 100%, 50%)`,
                 alpha: 1,
                 size: Math.random() * 4 + 2
             });
@@ -440,7 +440,7 @@ function initProjectileModule() {
             ctx.stroke();
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
             ctx.font = '10px Arial';
-            ctx.fillText(`\${((x-40)/scale)}m`, x - 10, height - 5);
+            ctx.fillText(`${((x-40)/scale)}m`, x - 10, height - 5);
         }
 
         // Draw Wall
